@@ -1,0 +1,14 @@
+FROM r-base:latest
+
+RUN apt-get update && apt-get install -y r-cran-tidyverse r-cran-caret && rm -rf /var/lib/apt/lists/*
+
+RUN R -e 'install.packages("RSNNS", repos="https://cran.rediris.es/")'
+RUN R -e 'install.packages("frbs", repos="https://cran.rediris.es/")'
+RUN R -e 'install.packages("FSinR", repos="https://cran.rediris.es/")'
+RUN R -e 'install.packages("fable", repos="https://cran.rediris.es/")'
+
+RUN adduser --disabled-login r-user
+USER r-user
+WORKDIR /home/r-user
+
+# docker run -it --rm cdr R
