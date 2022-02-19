@@ -2,7 +2,5 @@ FROM postgres:latest
 
 ENV POSTGRES_PASSWORD=postgres
 
-VOLUME [ "/var/lib/postgresql/data" ]
-
 # docker run -p 5432:5432 -v "$HOME/BigDataI/P1/data:/var/lib/postgresql/data" sgbd
 # psql -h <ip> -U postgres
