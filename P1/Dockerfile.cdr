@@ -1,11 +1,9 @@
-FROM r-base:latest
+FROM rocker/rstudio:latest
 
-RUN apt-get update && apt-get install -y r-cran-tidyverse r-cran-caret && rm -rf /var/lib/apt/lists/*
+ENV DISABLE_AUTH=true
 
-RUN R -e 'install.packages(c("RSNNS", "frbs", "FSinR", "fable"), repos="https://cran.rediris.es/")'
+RUN apt-get update && apt-get install -y --no-install-recommends libxml2-dev
 
-RUN adduser --disabled-login r-user
-USER r-user
-WORKDIR /home/r-user
+RUN install2.r caret fable frbs FSinR RSNNS tidyverse
 
-# docker run -it --rm cdr R
+EXPOSE 8787
