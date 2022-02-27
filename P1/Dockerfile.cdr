@@ -1,0 +1,9 @@
+FROM rocker/rstudio:latest
+
+ENV DISABLE_AUTH=true
+
+RUN apt-get update && apt-get install -y --no-install-recommends libxml2-dev
+
+RUN install2.r caret fable frbs FSinR RSNNS tidyverse
+
+EXPOSE 8787
