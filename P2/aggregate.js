@@ -9,6 +9,8 @@ db.runCommand({
             }
         },
         {
+            // Obtengo en un array los scores que son menores o iguales a 13
+            // y lo guardo en el nuevo campo addFields
             $addFields: {
                 lowScores: {
                     $filter: {
@@ -22,6 +24,10 @@ db.runCommand({
             }
         },
         {
+            // A partir de ese array que he creado, si su tamaño es 0
+            // solo tiene buenos scores y se asigna un 0 a la variable hasLowScores
+            // Si su tamaño es distinto de 0 es porque tiene malos scores y se asigna
+            // a la variable un 1.
             $addFields: {
                 hasLowScores: {
                     $cond: [
@@ -35,6 +41,9 @@ db.runCommand({
             }
         },
         {
+            // En el group, se agrupa por código postal y se suma la variable hasLowScores
+            // para finalmente darnos el numero de restaurantes que tienen malos scores en
+            // ese código postal
             $group: {
                 _id: "$address.zipcode",
                 "restaurantsWithLowerScores": {
@@ -116,7 +125,7 @@ db.runCommand({
                 $cond: {
                     if: {
                         $and: [
-                            {$lt: ["$restaurant1.id", "$restaurant2.id"]},
+                            {$gte: ["$restaurant1.id", "$restaurant2.id"]},
                             {$ne: ["$distance", 0.0]}
                         ]
                     },

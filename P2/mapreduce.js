@@ -55,13 +55,13 @@ db.runCommand({
         })
 
         return {
+            "distance": Math.sqrt(minDistance),
             "restaurant1_name": bestRestaurant1.name,
             "restaurant1_cuisine": bestRestaurant1.cuisine,
             "restaurant1_address": bestRestaurant1.address.street,
             "restaurant2_name": bestRestaurant2.name,
             "restaurant2_cuisine": bestRestaurant2.cuisine,
             "restaurant2_address": bestRestaurant2.address.street,
-            "dist": Math.sqrt(minDistance),
             "restaurants_with_lower_scores": restaurantsWithLowerScores
         };
     },
