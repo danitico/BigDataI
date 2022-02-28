@@ -1,5 +1,3 @@
-use("alumno");
-
 db.runCommand({
     aggregate: "restaurants",
     allowDiskUse: true,
@@ -11,15 +9,43 @@ db.runCommand({
             }
         },
         {
+            $addFields: {
+                lowScores: {
+                    $filter: {
+                        input: "$grades.score",
+                        as: "num",
+                        cond: {
+                            $lte: ["$$num", 13]
+                        }
+                    }
+                }
+            }
+        },
+        {
+            $addFields: {
+                hasLowScores: {
+                    $cond: [
+                        {
+                            $eq: [{$size: "$lowScores"}, 0]
+                        },
+                        0,
+                        1
+                    ]
+                }
+            }
+        },
+        {
             $group: {
                 _id: "$address.zipcode",
+                "restaurantsWithLowerScores": {
+                    $sum: "$hasLowScores"
+                },
                 "restaurants1": {
                     $push: {
                         restaurant_id: "$restaurant_id",
                         name: "$name",
                         cuisine: "$cuisine",
-                        address: "$address",
-                        grades: "$grades"
+                        address: "$address"
                     }
                 },
                 "restaurants2": {
@@ -27,8 +53,7 @@ db.runCommand({
                         restaurant_id: "$restaurant_id",
                         name: "$name",
                         cuisine: "$cuisine",
-                        address: "$address",
-                        grades: "$grades"
+                        address: "$address"
                     }
                 }
             }
@@ -43,17 +68,18 @@ db.runCommand({
             $project: {
                 _id: 0,
                 zipcode: "$_id",
+                restaurantsWithLowerScores: 1,
                 restaurant1: {
                     id: "$restaurants1.restaurant_id",
                     name: "$restaurants1.name",
                     cuisine: "$restaurants1.cuisine",
-                    address: "$restaurants1.address",
+                    address: "$restaurants1.address"
                 },
                 restaurant2: {
                     id: "$restaurants2.restaurant_id",
                     name: "$restaurants2.name",
                     cuisine: "$restaurants2.cuisine",
-                    address: "$restaurants2.address",
+                    address: "$restaurants2.address"
                 },
                 distance: {
                     $sqrt: {
@@ -107,7 +133,8 @@ db.runCommand({
                     $push: {
                         restaurant1: "$restaurant1",
                         restaurant2: "$restaurant2",
-                        distance: "$distance"
+                        distance: "$distance",
+                        restaurantsWithLowerScores: "$restaurantsWithLowerScores"
                     }
                 }
             }
@@ -127,16 +154,28 @@ db.runCommand({
             }
         },
         {
+            // Se añade este paso para desempatar cuando hay dos pares de restaurantes
+            // en un código postal que están a la misma distancia
+            $group: {
+                _id: "$_id",
+                restaurant1: {$first: "$restaurant_pairs.restaurant1"},
+                restaurant2: {$first: "$restaurant_pairs.restaurant2"},
+                distance: {$first: "$restaurant_pairs.distance"},
+                restaurantsWithLowerScores: {$first: "$restaurant_pairs.restaurantsWithLowerScores"}
+            }
+        },
+        {
             $project: {
                 _id: 0,
                 zipcode: "$_id",
-                distance: "$restaurant_pairs.distance",
-                restaurant1_name: "$restaurant_pairs.restaurant1.name",
-                restaurant1_cuisine: "$restaurant_pairs.restaurant1.cuisine",
-                restaurant1_address: "$restaurant_pairs.restaurant1.address.street",
-                restaurant2_name: "$restaurant_pairs.restaurant2.name",
-                restaurant2_cuisine: "$restaurant_pairs.restaurant2.cuisine",
-                restaurant2_address: "$restaurant_pairs.restaurant2.address.street"
+                distance: "$distance",
+                restaurant1_name: "$restaurant1.name",
+                restaurant1_cuisine: "$restaurant1.cuisine",
+                restaurant1_address: "$restaurant1.address.street",
+                restaurant2_name: "$restaurant2.name",
+                restaurant2_cuisine: "$restaurant2.cuisine",
+                restaurant2_address: "$restaurant2.address.street",
+                restaurants_with_lower_scores: "$restaurantsWithLowerScores"
             }
         },
         {
