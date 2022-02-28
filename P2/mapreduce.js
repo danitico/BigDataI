@@ -5,68 +5,64 @@ db.runCommand({
         emit(
             this.address.zipcode,
             {
-                "data": [
-                    {
-                        "name": this.name,
-                        "cuisine": this.cuisine,
-                        "address": this.address,
-                        "grades": this.grades
-                    }
-                ]
+                "name": this.name,
+                "cuisine": this.cuisine,
+                "address": this.address,
+                "grades": this.grades
             }
         );
     },
     reduce: function ReduceCode(key, values) {
         var reduced = {"data": []};
-        for (var i in values) {
-            var inter = values[i];
-            for (var j in inter.data) {
-                reduced.data.push(inter.data[j]);
-            }
-        }
-        
+        values.map(value => {
+            reduced.data.push(value);
+        });
+
         return reduced;
     },
     finalize: function Finalize(key, reduced) {
-        if (reduced.data.length == 1) {
+        if (reduced.data.length === 1) {
             return { "message" : "Este barrio solo contiene un restaurante" };
         }
-        var min_dist = 999999999999;
-        var city1 = {"address": {building: "", coord: [], "street": "", "zipcode": ""}};
-        var city2 = {"address": {building: "", coord: [], "street": "", "zipcode": ""}};
-        var c1, c2, d2, restaurants_lower_scores = 0;
 
-        for (var i in reduced.data) {
-            c1 = reduced.data[i];
+        var minDistance = 999999999999;
+        var bestRestaurant1, bestRestaurant2;
+        var restaurantsWithLowerScores = 0;
 
-            for (var grade_index in c1.grades) {
-                if (c1.grades[grade_index].score <= 13) {
-                    restaurants_lower_scores += 1;
+        reduced.data.forEach((restaurant1, index) => {
+            for (const grade of restaurant1.grades) {
+                if (grade.score <= 13) {
+                    restaurantsWithLowerScores += 1;
                     break;
                 }
             }
- 
-            for (var j in reduced.data) {
-                if (i>=j) continue; //termina la iteración actual y continua con la siguiente j
-                c2 = reduced.data[j];
-                d2 = (c1.address.coord[0]-c2.address.coord[0])*(c1.address.coord[0]-c2.address.coord[0]) + (c1.address.coord[1]-c2.address.coord[1])*(c1.address.coord[1]-c2.address.coord[1]);
-                if (d2 < min_dist && d2 > 0) {
-                    min_dist = d2;
-                    city1 = c1;
-                    city2 = c2;
+
+            reduced.data.slice(index + 1).forEach(restaurant2 => {
+                const distance = Math.pow(
+                    restaurant1.address.coord[0] - restaurant2.address.coord[0],
+                    2
+                ) + Math.pow(
+                    restaurant1.address.coord[1] - restaurant2.address.coord[1],
+                    2
+                );
+
+                if (distance > 0 && distance < minDistance) {
+                    bestRestaurant1 = restaurant1;
+                    bestRestaurant2 = restaurant2;
+                    minDistance = distance
                 }
-            }
-        }
+            })
+        })
 
         return {
-            "restaurant1_name": city1.name,
-            "restaurant1_cuisine": city1.cuisine,
-            "restaurant1_address": city1.address.street,
-            "restaurant2_name": city2.name,
-            "restaurant2_cuisine": city2.cuisine,
-            "restaurant2_address": city2.address.street,
-            "dist": Math.sqrt(min_dist),
-            "restaurants_with_lower_scores": restaurants_lower_scores
+            "restaurant1_name": bestRestaurant1.name,
+            "restaurant1_cuisine": bestRestaurant1.cuisine,
+            "restaurant1_address": bestRestaurant1.address.street,
+            "restaurant2_name": bestRestaurant2.name,
+            "restaurant2_cuisine": bestRestaurant2.cuisine,
+            "restaurant2_address": bestRestaurant2.address.street,
+            "dist": Math.sqrt(minDistance),
+            "restaurants_with_lower_scores": restaurantsWithLowerScores
         };
     },
     out: { merge: "rest_mapreduce" }
